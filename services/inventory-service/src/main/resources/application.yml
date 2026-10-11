@@ -1,0 +1,45 @@
+# Every environment-specific value comes from an env var with a local-dev default.
+server:
+  port: ${PORT:8082}
+  shutdown: graceful
+
+spring:
+  application:
+    name: inventory-service
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/inventory}
+    username: ${DB_USER:opspilot}
+    password: ${DB_PASSWORD:opspilot}
+    hikari:
+      connection-timeout: 3000   # fail fast instead of piling up requests when the DB is unreachable
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate          # Flyway owns the schema; Hibernate only checks it matches
+
+opspilot:
+  chaos:
+    enabled: ${CHAOS_ENABLED:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
+logging:
+  structured:
+    format:
+      console: ${LOG_FORMAT:ecs}
