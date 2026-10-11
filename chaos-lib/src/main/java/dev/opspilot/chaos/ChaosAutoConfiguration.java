@@ -12,6 +12,8 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Activates fault injection in any servlet application that has chaos-lib on its classpath.
@@ -24,7 +26,7 @@ public class ChaosAutoConfiguration {
 
     /**
      * Runs just after Spring's HTTP observation filter (HIGHEST_PRECEDENCE + 1), so injected latency
-     * and 500s show up in {@code http.server.requests} exactly like real ones.
+     * shows up in {@code http.server.requests} exactly like real slowness.
      */
     static final int FILTER_ORDER = Ordered.HIGHEST_PRECEDENCE + 10;
 
@@ -36,10 +38,22 @@ public class ChaosAutoConfiguration {
 
     @Bean
     public FilterRegistrationBean<ChaosFilter> chaosFilter(ChaosState state) {
-        ChaosFilter filter = new ChaosFilter(state, () -> ThreadLocalRandom.current().nextDouble());
-        FilterRegistrationBean<ChaosFilter> registration = new FilterRegistrationBean<>(filter);
+        FilterRegistrationBean<ChaosFilter> registration = new FilterRegistrationBean<>(new ChaosFilter(state));
         registration.setOrder(FILTER_ORDER);
         return registration;
+    }
+
+    @Bean
+    public WebMvcConfigurer chaosErrorInterceptorConfigurer(ChaosState state) {
+        ChaosErrorInterceptor interceptor =
+                new ChaosErrorInterceptor(state, () -> ThreadLocalRandom.current().nextDouble());
+        return new WebMvcConfigurer() {
+            @Override
+            public void addInterceptors(InterceptorRegistry registry) {
+                registry.addInterceptor(interceptor)
+                        .excludePathPatterns("/actuator", "/actuator/**", "/chaos", "/chaos/**");
+            }
+        };
     }
 
     @Bean

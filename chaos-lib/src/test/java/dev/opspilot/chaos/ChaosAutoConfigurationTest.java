@@ -19,7 +19,8 @@ class ChaosAutoConfigurationTest {
                 .hasSingleBean(ChaosState.class)
                 .hasSingleBean(ChaosController.class)
                 .hasSingleBean(ChaosMetrics.class)
-                .hasBean("chaosFilter"));
+                .hasBean("chaosFilter")
+                .hasBean("chaosErrorInterceptorConfigurer"));
     }
 
     @Test
@@ -27,7 +28,8 @@ class ChaosAutoConfigurationTest {
         runner.withPropertyValues("opspilot.chaos.enabled=false")
                 .run(context -> assertThat(context)
                         .doesNotHaveBean(ChaosState.class)
-                        .doesNotHaveBean("chaosFilter"));
+                        .doesNotHaveBean("chaosFilter")
+                        .doesNotHaveBean("chaosErrorInterceptorConfigurer"));
     }
 
     @Test
