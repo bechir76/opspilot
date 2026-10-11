@@ -1,0 +1,76 @@
+# Local stack:     docker compose up --build
+# With traffic:    docker compose --profile traffic up --build
+name: opspilot
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: opspilot
+      POSTGRES_PASSWORD: opspilot   # demo credentials only
+    volumes:
+      # Same SQL file Kubernetes mounts from a ConfigMap: one source of truth.
+      - ./k8s/base/files/init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Checks the last database the init script creates, so "healthy" means init is finished.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U opspilot -d orders"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  inventory-service:
+    build:
+      context: .
+      args:
+        SERVICE: inventory-service
+    image: opspilot/inventory-service:dev
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/inventory
+      DB_USER: opspilot
+      DB_PASSWORD: opspilot
+    ports:
+      - "8082:8080"
+    mem_limit: 512m
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  order-service:
+    build:
+      context: .
+      args:
+        SERVICE: order-service
+    image: opspilot/order-service:dev
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/orders
+      DB_USER: opspilot
+      DB_PASSWORD: opspilot
+      INVENTORY_URL: http://inventory-service:8080
+    ports:
+      - "8081:8080"
+    mem_limit: 512m
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  traffic:
+    image: curlimages/curl:8.22.0
+    profiles: ["traffic"]
+    entrypoint: ["sh", "/scripts/traffic.sh"]
+    environment:
+      ORDER_URL: http://order-service:8080
+      INVENTORY_URL: http://inventory-service:8080
+      INTERVAL: "1"
+    volumes:
+      - ./k8s/base/files/traffic.sh:/scripts/traffic.sh:ro
+    restart: unless-stopped
+    depends_on:
+      - order-service
+      - inventory-service
+
+volumes:
+  pgdata:
