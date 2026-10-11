@@ -42,4 +42,4 @@ management:
 logging:
   structured:
     format:
-      console: ${LOG_FORMAT:ecs}
+      console: ${LOG_FORMAT:ecs}   # set LOG_FORMAT to an empty value for plain-text logs
