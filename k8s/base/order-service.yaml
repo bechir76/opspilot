@@ -38,6 +38,31 @@ spec:
         runAsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
+      # Waits until Postgres accepts TCP connections. During first-time init Postgres only listens on
+      # its Unix socket, so this also waits for the init SQL to finish. Without it, the app starts first,
+      # Flyway cannot connect, the app exits and the pod gets restarts that are noise in every baseline.
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:17-alpine
+          command: ["sh", "-c", "until pg_isready -h postgres -p 5432 -U \"$DB_USER\" -d orders; do echo waiting for postgres; sleep 2; done"]
+          env:
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_USER
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
       containers:
         - name: app
           image: ghcr.io/bechir76/order-service:latest
