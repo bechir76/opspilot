@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opspilot-demo
+  labels:
+    # Pod Security Admission: reject pods that need privileged features (host namespaces,
+    # privileged containers, hostPath, ...). The app pods also meet the stricter "restricted" profile.
+    pod-security.kubernetes.io/enforce: baseline

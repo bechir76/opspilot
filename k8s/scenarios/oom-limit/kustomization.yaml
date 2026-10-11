@@ -1,0 +1,18 @@
+# Scenario: oom-limit. Someone "right-sizes" inventory-service memory far below what the JVM needs.
+#
+# Expected symptoms:
+#   - The new inventory-service pod is killed by the kernel during startup: last state
+#     "Terminated, Reason: OOMKilled, Exit Code: 137", then CrashLoopBackOff with growing restart counts.
+#   - No Java OutOfMemoryError in the logs: the heap (75% of 160Mi) is not full; heap plus
+#     metaspace, threads and code cache together exceed the container limit, so the cgroup kills the process.
+#   - The rollout is stuck, and the old pod keeps serving (same RollingUpdate reasoning as bad-image).
+#
+# Fix: make restore (re-applies overlays/kind with the 384Mi/512Mi request/limit).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../overlays/kind
+
+patches:
+  - path: inventory-memory.yaml

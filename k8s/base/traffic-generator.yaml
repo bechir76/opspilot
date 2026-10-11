@@ -1,0 +1,54 @@
+# Steady background traffic, so every incident scenario has a realistic baseline to deviate from.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic-generator
+  labels:
+    app.kubernetes.io/name: traffic-generator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: traffic-generator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: traffic-generator
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: traffic
+          image: curlimages/curl:8.22.0
+          command: ["sh", "/scripts/traffic.sh"]
+          env:
+            - name: ORDER_URL
+              value: http://order-service:8080
+            - name: INVENTORY_URL
+              value: http://inventory-service:8080
+            - name: INTERVAL
+              value: "1"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: traffic-script

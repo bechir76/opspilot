@@ -1,0 +1,15 @@
+# Local kind cluster: uses images built locally (make images) and loaded with "kind load",
+# instead of pulling from GHCR. Non-"latest" tags default to imagePullPolicy IfNotPresent.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+images:
+  - name: ghcr.io/bechir76/inventory-service
+    newName: opspilot/inventory-service
+    newTag: dev
+  - name: ghcr.io/bechir76/order-service
+    newName: opspilot/order-service
+    newTag: dev

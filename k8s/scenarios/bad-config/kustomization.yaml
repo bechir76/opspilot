@@ -1,0 +1,19 @@
+# Scenario: bad-config. A config change points order-service at a host that does not exist.
+#
+# Expected symptoms:
+#   - Every POST /api/orders returns 502; orders are saved as FAILED with
+#     "Inventory unreachable ... UnresolvedAddressException / ConnectException".
+#   - order-service logs ERROR "Order failed" with the exception; orders_placed_total{status="failed"} climbs;
+#     http_client_requests_seconds shows no successful calls to inventory.
+#   - Pods stay Running and Ready, with 0 restarts: liveness and readiness don't depend on inventory,
+#     so Kubernetes sees nothing wrong. Only the rollout (a new ReplicaSet) and the env diff point at the cause.
+#
+# Fix: make restore (re-applies overlays/kind).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../overlays/kind
+
+patches:
+  - path: order-service-env.yaml

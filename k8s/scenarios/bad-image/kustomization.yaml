@@ -1,0 +1,19 @@
+# Scenario: bad-image. A deploy references an inventory-service image tag that does not exist.
+#
+# Expected symptoms:
+#   - The new inventory-service pod is stuck in ErrImagePull / ImagePullBackOff;
+#     events show "Failed to pull image ... not found" (or "pull access denied").
+#   - The rollout never completes: "kubectl rollout status" times out.
+#   - The old pod keeps serving: with 1 replica, maxUnavailable rounds down to 0, so the
+#     RollingUpdate never removes the last working pod. Users see no errors, only a stuck deploy.
+#
+# Fix: make restore (re-applies overlays/kind with the :dev tag).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../overlays/kind
+
+images:
+  - name: opspilot/inventory-service
+    newTag: 1.0.1-hotfix   # never built or pushed

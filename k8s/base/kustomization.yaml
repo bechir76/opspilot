@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: opspilot-demo
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: opspilot
+    includeSelectors: false   # selectors are immutable; keep them minimal
+
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - inventory-service.yaml
+  - order-service.yaml
+  - traffic-generator.yaml
+
+# Generated names get a content hash suffix, and references are rewritten to match: changing the
+# script or SQL changes the name, which rolls the pods that use it.
+configMapGenerator:
+  - name: postgres-init
+    files:
+      - files/init-databases.sql
+  - name: traffic-script
+    files:
+      - files/traffic.sh
+
+# Demo-only credentials, committed in plain text on purpose so the stack runs with zero setup.
+# Phase 2 replaces this with a real secret-management solution, and no real credential ever goes here.
+secretGenerator:
+  - name: postgres-credentials
+    literals:
+      - POSTGRES_USER=opspilot
+      - POSTGRES_PASSWORD=opspilot
