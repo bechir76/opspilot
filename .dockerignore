@@ -1,0 +1,11 @@
+# Keep the build context small and cache-friendly: only POMs and sources are needed.
+**/target/
+.git/
+.github/
+k8s/
+docs/
+scripts/
+.idea/
+.vscode/
+*.iml
+*.md

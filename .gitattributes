@@ -1,0 +1,6 @@
+# Normalize line endings; shell scripts, Dockerfile and Makefile must be LF to run in Linux containers.
+* text=auto
+*.sh       text eol=lf
+Dockerfile text eol=lf
+Makefile   text eol=lf
+*.cmd      text eol=crlf
